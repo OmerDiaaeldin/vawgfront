@@ -1,16 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  ChangeEvent,
-} from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMapEvents,
-} from "react-leaflet";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import "leaflet/dist/leaflet.css";
 import Head from "next/head";
 
@@ -20,6 +8,8 @@ import { ProcessedLocation } from "@/app/types";
 import { fetchData } from "@/app/helpers/fetchData";
 import downloadCsv from "@/app/helpers/downloadCsv";
 import Styler from "../app/helpers/Styler";
+import DetailedMap from "./DetailedMap";
+import ClusterHeatMap from "./HeatMap";
 
 // Define TypeScript interfaces
 
@@ -33,25 +23,11 @@ const setupLeafletIcons = (): void => {
   });
 };
 
-// Component for handling map clicks
-function MapClickHandler({
-  onLocationClick,
-}: {
-  onLocationClick: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click: (e) => {
-      onLocationClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-
-  return null;
-}
-
 export default function LocationMap() {
   const [locations, setLocations] = useState<ProcessedLocation[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [pickHeatMap, setPickHeatMap] = useState<boolean>(true);
 
   // Form state
   const [newCrimeDate, setNewCrimeDate] = useState<string>(
@@ -161,38 +137,44 @@ export default function LocationMap() {
       <Head>
         <title>Location Map</title>
       </Head>
-
       <h1>Location Map</h1>
       <p className="instructions">
         Click anywhere on the map to add a new location, or use the form below.
       </p>
-
-      <div style={{ height: "600px", width: "100%" }}>
-        <MapContainer
+      <button
+        type="button"
+        onClick={() => setPickHeatMap((val) => !val)}
+        style={{
+          padding: "10px 20px",
+          border: "2px solid #1a1a1a",
+          borderRadius: "8px",
+          backgroundColor: "#ffffff",
+          color: "#1a1a1a",
+          fontSize: "16px",
+          fontWeight: "600",
+          cursor: "pointer",
+          transition: "all 0.3s ease",
+          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+          margin: "10px 0",
+          outline: "none",
+          minWidth: "120px",
+        }}
+      >
+        {pickHeatMap ? "Show Markers" : "Show Heatmap"}
+      </button>{" "}
+      {pickHeatMap ? (
+        <ClusterHeatMap
           center={center}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-
-          <MapClickHandler onLocationClick={handleMapClick} />
-
-          {locations.map((location) => (
-            <Marker key={location.id} position={location.position}>
-              <Popup>
-                <div>
-                  <strong>ID: {location.id}</strong>
-                  {/* <p>{location.address}</p> */}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
-
+          locations={locations}
+          handleMapClick={handleMapClick}
+        />
+      ) : (
+        <DetailedMap
+          center={center}
+          locations={locations}
+          handleMapClick={handleMapClick}
+        />
+      )}
       {/* Add Location Form */}
       <div id="add-location-form" className="form-container">
         <h2>Add New Location</h2>
@@ -279,7 +261,6 @@ export default function LocationMap() {
           </div>
         </form>
       </div>
-
       {/* Locations List */}
       <div className="location-list">
         <h2 className="location-list__title">
@@ -321,7 +302,6 @@ export default function LocationMap() {
           </table>
         </div>
       </div>
-
       <style jsx>{Styler}</style>
     </div>
   );
