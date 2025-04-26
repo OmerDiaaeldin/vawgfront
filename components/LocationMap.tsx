@@ -1,4 +1,9 @@
-import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  ChangeEvent,
+} from "react";
 import {
   MapContainer,
   TileLayer,
@@ -6,13 +11,12 @@ import {
   Popup,
   useMapEvents,
 } from "react-leaflet";
-import Papa from "papaparse";
 import "leaflet/dist/leaflet.css";
 import Head from "next/head";
 
 // Fix for Leaflet marker icons in Next.js
 import L from "leaflet";
-import { LocationData, ProcessedLocation } from "@/app/types";
+import { ProcessedLocation } from "@/app/types";
 import { fetchData } from "@/app/helpers/fetchData";
 import downloadCsv from "@/app/helpers/downloadCsv";
 import Styler from "../app/helpers/Styler";
@@ -50,7 +54,13 @@ export default function LocationMap() {
   const [error, setError] = useState<string | null>(null);
 
   // Form state
-  const [newAddress, setNewAddress] = useState<string>("");
+  const [newCrimeDate, setNewCrimeDate] = useState<string>(
+    new Date().toDateString()
+  );
+  const [newReportDate, setNewReportDate] = useState<string>(
+    new Date().toDateString()
+  );
+  const [newCrime, setNewCrime] = useState<string>("");
   const [clickedLat, setClickedLat] = useState<number | null>(null);
   const [clickedLng, setClickedLng] = useState<number | null>(null);
 
@@ -94,7 +104,7 @@ export default function LocationMap() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newAddress || !clickedLat || !clickedLng) {
+    if (!clickedLat || !clickedLng) {
       setFormMessage(
         "Please provide an address and select a location on the map."
       );
@@ -110,14 +120,16 @@ export default function LocationMap() {
     // Add new location to state
     const newLocation: ProcessedLocation = {
       id: newId,
-      address: newAddress,
+      DateOfReport: new Date(newReportDate),
+      CrimeDateTime: new Date(newCrimeDate),
+      Crime: newCrime,
       position: [clickedLat, clickedLng],
+      Location: `${clickedLat}, ${clickedLng}`,
     };
 
     setLocations([...locations, newLocation]);
 
     // Reset form
-    setNewAddress("");
     setClickedLat(null);
     setClickedLng(null);
     // setShowForm(false);
@@ -173,7 +185,7 @@ export default function LocationMap() {
               <Popup>
                 <div>
                   <strong>ID: {location.id}</strong>
-                  <p>{location.address}</p>
+                  {/* <p>{location.address}</p> */}
                 </div>
               </Popup>
             </Marker>
@@ -188,18 +200,6 @@ export default function LocationMap() {
         {showSuccess && <div className="success-message">{formMessage}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="address">Address:</label>
-            <input
-              type="text"
-              id="address"
-              value={newAddress}
-              onChange={(e) => setNewAddress(e.target.value)}
-              placeholder="Enter location address"
-              required
-            />
-          </div>
-
           <div className="form-group">
             <label>Coordinates:</label>
             <div className="coordinates-display">
@@ -216,11 +216,55 @@ export default function LocationMap() {
             </div>
           </div>
 
+          <div className="form-group">
+            <label>Date and time of incident</label>
+            <input
+              type="datetime-local"
+              value={newCrimeDate}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                setNewCrimeDate(event.target.value || "");
+              }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Date and time of report</label>
+            <input
+              type="datetime-local"
+              value={newReportDate}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                setNewReportDate(event.target.value || "");
+              }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="crime">Crime</label>
+            <select
+              name="crime"
+              id="crime"
+              value={newCrime}
+              onChange={(event: ChangeEvent) => {
+                setNewCrime(event.target.nodeValue || "");
+              }}
+            >
+              {Array.from(
+                new Set(locations.map((location) => location.Crime))
+              ).map((crime, index) => {
+                return (
+                  <option key={index} value={crime}>
+                    {crime}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
           <div className="form-actions">
             <button
               type="submit"
               className="submit-button"
-              disabled={!newAddress || !clickedLat || !clickedLng}
+              disabled={!clickedLat || !clickedLng}
             >
               Add Location
             </button>

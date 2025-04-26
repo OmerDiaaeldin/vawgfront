@@ -5,7 +5,6 @@ export default (locations: ProcessedLocation[]) => {
     // Convert locations back to CSV format
     const csvData = locations.map(loc => ({
       id: loc.id,
-      address: loc.address,
       Latitude: loc.position[0].toString(),
       Longitude: loc.position[1].toString()
     }));
